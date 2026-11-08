@@ -344,3 +344,29 @@ body.wf svg.arte { background:
   linear-gradient(to bottom right, transparent calc(50% - 1px), #9E9E9E calc(50% - 1px), #9E9E9E calc(50% + 1px), transparent calc(50% + 1px)), #E0E0E0; }
 body.wf .btn-primario, body.wf .chip[aria-pressed="true"], body.wf .segmentado input:checked + label, body.wf .nav-publicar .burbuja, body.wf .logo-marca { background: #555; color: #fff; }
 body.wf .feed-item.nuevo { background: #F2F2F2; }
+
+/* =========================================================
+   Mejoras v3 (resultado de las pruebas de usabilidad)
+   ========================================================= */
+/* #3 Barra de acción fija: "Publicar" siempre visible en pantallas pequeñas */
+.barra-accion {
+  position: sticky; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); z-index: 15;
+  display: flex; gap: var(--e-2); align-items: center; justify-content: flex-end;
+  background: var(--superficie); border-top: 1px solid var(--borde); box-shadow: 0 -6px 14px rgba(23,63,42,.08);
+  margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
+  padding-block: var(--e-3); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.barra-accion .btn-primario { flex: 1; }
+/* #4 Avisos con etiqueta visible y aviso destacado */
+.btn-avisos { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; min-width: var(--toque); min-height: var(--toque); padding: 2px 8px; border-radius: var(--r-m); color: var(--verde-900); text-decoration: none; font-size: 11px; font-weight: 700; }
+.btn-avisos:hover { background: var(--verde-100); }
+.punto-nav { top: -6px; right: -10px; }
+.aviso-destacado { display: flex; gap: var(--e-3); align-items: center; flex-wrap: wrap; padding: var(--e-3) var(--e-4); border-radius: var(--r-m); background: var(--maiz-100); border: 2px solid var(--maiz-500); color: var(--texto); text-decoration: none; font-size: var(--t-peq); }
+.aviso-destacado > span:nth-child(2) { flex: 1 1 200px; min-width: 0; }
+.aviso-destacado .ico { color: #6B4E00; }
+.aviso-destacado .ver { font-weight: 700; color: var(--verde-700); text-decoration: underline; }
+@media (min-width: 900px) {
+  .barra-accion { bottom: 0; margin-left: 0; margin-right: 0; border: 1px solid var(--borde); border-radius: var(--r-m); padding-inline: var(--e-4); }
+  .barra-accion .btn-primario { flex: none; }
+}
+body.wf .aviso-destacado { background: #F2F2F2; border-color: #999; }

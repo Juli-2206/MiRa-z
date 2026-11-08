@@ -6,6 +6,11 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const fmt = (n) => "$ " + Number(n).toLocaleString("es-CO");
+  // Mejora v3 #1: acepta el celular con espacios, guiones o +57
+  const soloCel = (v) => { let d = String(v).replace(/\D/g, ""); if (d.length === 12 && d.startsWith("57")) d = d.slice(2); return d; };
+  // Mejora v3 #2: acepta el precio con o sin puntos de miles
+  const soloNum = (v) => String(v).replace(/\D/g, "");
+  const miles = (v) => (soloNum(v) ? Number(soloNum(v)).toLocaleString("es-CO") : "");
 
   /* ---------------- Iconos (trazos 24×24) ---------------- */
   const ICONOS = {
@@ -96,7 +101,7 @@
     const h = Math.round(200 * ratio);
     return `<svg class="arte" viewBox="0 0 200 ${h}" role="img" aria-label="${esc(etiqueta)}" preserveAspectRatio="xMidYMid slice"><rect width="200" height="${h}" fill="${bg}"/>${f(100, h / 2)}</svg>`;
   }
-  function foto(p, ratio) { return p.foto ? `<img class="arte" src="${p.foto}" alt="Foto de ${esc(p.nombre)}" style="width:100%;aspect-ratio:200/${Math.round(200 * ratio)};object-fit:cover;display:block">` : arte(p.arte, ratio, "Foto de " + p.nombre); }
+  function foto(p, ratio) { return p.foto ? `<img class="arte" src="${p.foto}" alt="Foto de ${esc(p.nombre)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:200/${Math.round(200 * ratio)};object-fit:cover;display:block">` : arte(p.arte, ratio, "Foto de " + p.nombre); }
 
   /* ---------------- Datos de ejemplo ---------------- */
   const CATEGORIAS = ["Frutas", "Hortalizas", "Verduras", "Flores", "Cárnicos", "Abonos y fertilizantes"];
@@ -171,20 +176,20 @@
   function enlacesNav(ruta) {
     const rol = E.sesion.rol;
     const items = rol === "agricultor"
-      ? [["inicio", "Inicio", "inicio"], ["mis-productos", "Mis productos", "lista"], ["publicar", "Publicar", "mas"], ["panel", "Panel", "reporte"]]
+      ? [["inicio", "Inicio", "inicio"], ["mis-productos", "Mis productos", "lista"], ["publicar", "Publicar", "mas"], ["panel", "Avisos", "campana"]]
       : [["inicio", "Inicio", "inicio"], ["intereses", "Mis intereses", "corazon"]];
     const act = (k) => (ruta === k || (ruta === "producto" && k === "inicio") ? ' aria-current="page"' : "");
     const sup = items.map(([k, t]) => `<a href="#${k}"${act(k)}>${t}</a>`).join("");
     const inf = items.map(([k, t, i]) => k === "publicar"
       ? `<a href="#${k}" class="nav-publicar"${act(k)}><span class="burbuja">${ic(i)}</span>${t}</a>`
-      : `<a href="#${k}"${act(k)}>${ic(i)}${t}</a>`).join("");
+      : `<a href="#${k}"${act(k)}><span style="position:relative;display:inline-flex">${ic(i)}${k === "panel" && noLeidos() ? `<span class="punto punto-nav" aria-hidden="true">${noLeidos()}</span>` : ""}</span>${t}${k === "panel" && noLeidos() ? `<span class="sr-only">: ${noLeidos()} sin leer</span>` : ""}</a>`).join("");
     return { sup, inf };
   }
   function marco(ruta, contenido) {
     const u = yo(), n = enlacesNav(ruta), agri = E.sesion.rol === "agricultor";
     return `<header class="cabecera"><div class="cabecera-in">${logo()}<nav class="nav-sup" aria-label="Principal">${n.sup}</nav>
       <div class="cab-acciones">
-        ${agri ? `<a class="btn-icono" href="#panel" aria-label="Avisos: ${noLeidos()} sin leer">${ic("campana")}${noLeidos() ? `<span class="punto" aria-hidden="true">${noLeidos()}</span>` : ""}</a>` : ""}
+        ${agri ? `<a class="btn-avisos" href="#panel" aria-label="Avisos: ${noLeidos()} sin leer"><span style="position:relative;display:inline-flex">${ic("campana")}${noLeidos() ? `<span class="punto punto-nav" aria-hidden="true">${noLeidos()}</span>` : ""}</span><span>Avisos</span></a>` : ""}
         <button class="btn-icono" id="btn-cuenta" aria-haspopup="true" aria-expanded="${E.menu}" aria-label="Mi cuenta"><span class="avatar">${u.ini}</span></button>
       </div></div>
       ${E.menu ? `<div class="menu-cuenta" role="menu"><p><strong>${u.nombre}</strong><br>${agri ? "Agricultor" : "Compradora"}</p>
@@ -239,7 +244,7 @@
           <input type="radio" name="rol" id="rol-comp" value="comprador" checked><label for="rol-comp">${ic("canasta")}<strong>Comprar</strong><span>Busco productos frescos directo del campo</span></label>
         </div></fieldset>
       ${campo({ id: "nombre", label: "Nombre completo", error: "Escribe tu nombre.", attrs: 'autocomplete="name" required' })}
-      ${campo({ id: "celular", label: "Número de celular", tipo: "tel", ayuda: "Si vendes, los compradores interesados verán este número.", error: "Escribe un celular de 10 dígitos, por ejemplo 3104567821.", attrs: 'inputmode="numeric" autocomplete="tel" required' })}
+      ${campo({ id: "celular", label: "Número de celular", tipo: "tel", ayuda: "Puedes escribirlo con espacios o con +57. Si vendes, los compradores interesados verán este número.", error: "Revisa el número: debe tener 10 dígitos y empezar por 3. Ej.: 310 456 7821", attrs: 'inputmode="tel" autocomplete="tel" placeholder="Ej.: 310 456 7821" required' })}
       <div class="campo" data-campo="municipio"><label for="municipio">Municipio</label>
         <select class="entrada" id="municipio" name="municipio" required aria-describedby="municipio-error"><option value="">Selecciona tu municipio</option>${MUNICIPIOS.concat("Bogotá").map((m) => `<option>${m}</option>`).join("")}</select>
         <span class="msj-error" id="municipio-error">${ic("alerta", "ico peq")}Selecciona un municipio.</span></div>
@@ -269,6 +274,11 @@
       <p class="sub">Prueba con otro municipio u otra categoría.</p><button class="btn btn-secundario" data-accion="limpiar">Quitar filtros</button></div>`;
     return res + `<div class="galeria">${l.map(tarjeta).join("")}</div>`;
   }
+  function avisoDestacado() {
+    const n = noLeidos(); if (!n) return "";
+    const a = AVISOS.find((x) => x.nuevo), p = prod(a.p);
+    return `<a class="aviso-destacado" href="#panel">${ic("campana")}<span><strong>Tienes ${n} ${n === 1 ? "aviso nuevo" : "avisos nuevos"}.</strong> ${a.q} ${a.tipo === "interes" ? "mostró interés en" : "comentó en"} ${esc(p.nombre)}.</span><span class="ver">Ver avisos</span></a>`;
+  }
   function pInicio() {
     const agri = E.sesion.rol === "agricultor";
     return `<div class="pila">
@@ -277,6 +287,7 @@
         <p class="sub">${agri ? "Así ven los compradores tus publicaciones y las de otros agricultores." : "Productos frescos publicados por agricultores de la región del Sumapaz."}</p></div>
         ${agri ? `<a class="btn btn-primario" href="#publicar">${ic("mas")}Publicar producto</a>` : ""}
       </div>
+      ${agri ? avisoDestacado() : ""}
       <div class="barra-busqueda" role="search">
         <div class="con-icono"><label for="busca" class="sr-only">Buscar productos</label><span class="lupa">${ic("buscar")}</span>
           <input class="entrada" id="busca" type="search" placeholder="Buscar: tomate, mora, abono…" value="${esc(E.busqueda)}"></div>
@@ -324,19 +335,24 @@
           <div id="zona-accion">${accion}</div>
         </div></div>${comentarios(p)}`;
   }
+  function waLink(p) {
+    const a = AGRI[p.agri];
+    return `https://wa.me/57${soloCel(a.tel)}?text=${encodeURIComponent(`Hola ${a.corto}, vi su ${p.nombre} en MiRaíz y me interesa.`)}`;
+  }
   function contacto(p) {
     const a = AGRI[p.agri];
     return `<div class="contacto" tabindex="-1" id="caja-contacto"><p class="fila" style="gap:6px;font-weight:700;color:var(--verde-900)">${ic("check")}Le avisamos a ${a.corto} que estás interesada</p>
       <p>Llámalo o escríbele por WhatsApp para acordar cantidad, precio final y entrega:</p>
       <p class="telefono">${ic("telefono")} ${a.tel}</p>
-      <div class="fila"><button class="btn btn-primario btn-peq" data-copiar="${a.tel}">${ic("copiar")}Copiar número</button><span class="sub">El pago y la entrega se acuerdan directamente con el agricultor.</span></div></div>`;
+      <div class="fila"><a class="btn btn-primario btn-peq" href="${waLink(p)}" target="_blank" rel="noopener">${ic("mensaje")}Escribir por WhatsApp</a><button class="btn btn-secundario btn-peq" data-copiar="${a.tel}">${ic("copiar")}Copiar número</button></div>
+      <p class="sub">El pago y la entrega se acuerdan directamente con el agricultor.</p></div>`;
   }
   function pIntereses() {
     const l = P.filter((p) => E.intereses.has(p.id));
     return `<div class="pila"><h1>Mis intereses</h1><p class="sub">Productos en los que pulsaste “Me interesa”. Aquí tienes siempre el contacto del agricultor.</p>
       ${l.length ? `<div class="lista-gestion">${l.map((p) => { const a = AGRI[p.agri]; return `<article class="item-gestion"><div class="mini">${foto(p, 1)}</div>
         <div class="info"><h3>${esc(p.nombre)}</h3><p class="precio">${fmt(p.precio)} <small>${unidadTxt(p)}</small></p><p class="lugar">${ic("lugar", "ico peq")}${p.mun} · ${a.nombre}</p></div>
-        <div class="acciones"><span class="telefono" style="font-size:1.125rem">${ic("telefono", "ico peq")} ${a.tel}</span><button class="btn btn-texto btn-peq" data-copiar="${a.tel}">${ic("copiar")}Copiar</button><a class="btn btn-secundario btn-peq" href="#producto-${p.id}" style="margin-left:auto">Ver producto</a></div></article>`; }).join("")}</div>`
+        <div class="acciones"><span class="telefono" style="font-size:1.125rem">${ic("telefono", "ico peq")} ${a.tel}</span><button class="btn btn-texto btn-peq" data-copiar="${a.tel}">${ic("copiar")}Copiar</button><a class="btn btn-primario btn-peq" href="${waLink(p)}" target="_blank" rel="noopener" style="margin-left:auto">${ic("mensaje")}WhatsApp</a></div></article>`; }).join("")}</div>`
       : `<div class="vacio">${ic("corazon")}<h2>Todavía no has marcado productos</h2><p class="sub">Cuando pulses “Me interesa” en un producto, lo verás aquí con el número del agricultor.</p><a class="btn btn-primario" href="#inicio">Explorar productos</a></div>`}</div>`;
   }
   function pPublicar() {
@@ -361,7 +377,7 @@
           <input type="radio" name="p-estado" id="e-exh" value="exhibicion" ${b.estado === "exhibicion" ? "checked" : ""}><label for="e-exh">Solo mostrarlo</label></div>
           <span class="ayuda">“Solo mostrarlo” sirve para anunciar una próxima cosecha. No se muestra precio ni el botón “Me interesa”.</span></fieldset>
         <div class="dos-col" ${b.estado === "exhibicion" ? "hidden" : ""} id="bloque-precio">
-          ${campo({ id: "p-precio", label: "Precio en pesos", tipo: "text", valor: b.precio, error: "Escribe el precio en números, sin puntos. Ej.: 3500", attrs: 'inputmode="numeric" placeholder="3500"' })}
+          ${campo({ id: "p-precio", label: "Precio en pesos", tipo: "text", valor: miles(b.precio), ayuda: "Escríbelo como quieras: 3500 o 3.500.", error: "Escribe el precio en números. Ej.: 3.500", attrs: 'inputmode="numeric" placeholder="Ej.: 3.500"' })}
           <fieldset class="campo" style="border:0;padding:0;margin:0"><legend class="etiqueta" style="margin-bottom:6px">El precio es…</legend>
             <div class="segmentado"><input type="radio" name="p-unidad" id="u-kg" value="kg" ${b.unidad === "kg" ? "checked" : ""}><label for="u-kg">Por kilo</label>
             <input type="radio" name="p-unidad" id="u-un" value="unidad" ${b.unidad === "unidad" ? "checked" : ""}><label for="u-un">Por unidad</label></div></fieldset>
@@ -370,7 +386,7 @@
         <div class="campo"><label for="p-desc">Descripción <span class="sub">(opcional)</span></label>
           <textarea class="entrada" id="p-desc" name="p-desc" maxlength="300" aria-describedby="p-desc-ayuda" placeholder="Cuéntales cómo lo cultivas, cuánto tienes disponible y cómo entregas.">${esc(b.desc)}</textarea>
           <span class="ayuda" id="p-desc-ayuda"><span id="contador">${b.desc.length}</span>/300 caracteres</span></div>
-        <div class="fila"><button class="btn btn-primario" type="submit">${ic("check")}${ed ? "Guardar cambios" : "Publicar"}</button><a class="btn btn-texto" href="#mis-productos" data-accion="cancelar">Cancelar</a></div>
+        <div class="barra-accion"><a class="btn btn-texto" href="#mis-productos" data-accion="cancelar">Cancelar</a><button class="btn btn-primario" type="submit">${ic("check")}${ed ? "Guardar cambios" : "Publicar"}</button></div>
       </form>
       <aside class="pila" aria-label="Vista previa"><p class="etiqueta">Así la verán los compradores</p><div id="vista-previa" style="max-width:280px">${previa()}</div></aside></div>`;
   }
@@ -384,6 +400,7 @@
     const venta = l.filter((p) => p.estado === "venta").length;
     return `<div class="pila"><div class="fila" style="justify-content:space-between"><div><h1>Mis productos</h1><p class="sub">${l.length} publicaciones · ${venta} en venta</p></div>
       <a class="btn btn-primario" href="#publicar" data-accion="nuevo">${ic("mas")}Publicar producto</a></div>
+      ${avisoDestacado()}
       ${l.length ? `<div class="lista-gestion">${l.map((p) => `<article class="item-gestion" aria-labelledby="g-${p.id}"><div class="mini">${foto(p, 1)}</div>
         <div class="info"><h3 id="g-${p.id}"><a href="#producto-${p.id}" style="color:inherit">${esc(p.nombre)}</a></h3>
           <p>${p.estado === "venta" ? `<span class="precio">${fmt(p.precio)} <small>${unidadTxt(p)}</small></span>` : `<span class="insignia ins-exhibicion">Solo exhibición</span>`}</p>
@@ -400,7 +417,7 @@
     const l = P.filter((p) => p.agri === "alirio");
     const tot = l.reduce((s, p) => s + p.int, 0), vis = l.reduce((s, p) => s + p.vis, 0), max = Math.max(...l.map((p) => p.int), 1);
     const nCom = AVISOS.filter((a) => a.tipo === "coment").length;
-    return `<div class="pila"><div class="fila" style="justify-content:space-between;align-items:flex-end"><div><h1>Hola, Don Alirio</h1><p class="sub">Resumen de los últimos 7 días</p></div>
+    return `<div class="pila"><div class="fila" style="justify-content:space-between;align-items:flex-end"><div><h1>Avisos y resumen</h1><p class="sub">Hola, Don Alirio. Esto pasó en los últimos 7 días.</p></div>
       <a class="btn btn-primario" href="#publicar" data-accion="nuevo">${ic("mas")}Publicar producto</a></div>
       <div class="kpis">
         <div class="kpi"><span class="num" id="kpi-int">${tot}</span><span class="lbl">Personas interesadas</span><span class="delta">+3 desde ayer</span></div>
@@ -409,11 +426,11 @@
         <div class="kpi"><span class="num">${vis}</span><span class="lbl">Visitas a tus productos</span><span class="delta">+18 % que la semana pasada</span></div>
       </div>
       <div class="panel-rejilla pila">
+        <section class="panel pila" aria-labelledby="t-avisos"><div class="fila" style="justify-content:space-between"><h2 id="t-avisos">Avisos recientes</h2>${noLeidos() ? `<button class="btn btn-texto btn-peq" data-accion="leidos">Marcar como leídos</button>` : ""}</div>
+          <div class="feed" id="feed">${AVISOS.map(itemAviso).join("")}</div></section>
         <section class="panel pila" aria-labelledby="t-barras"><h2 id="t-barras">Interés por producto</h2>
           <div class="barras">${l.slice().sort((a, b) => b.int - a.int).map((p) => `<div class="barra"><span>${esc(p.nombre)}</span><div class="pista" role="img" aria-label="${p.int} interesados"><div class="relleno" style="width:${(p.int / max) * 100}%"></div></div><span class="val">${p.int}</span></div>`).join("")}</div>
           <p class="sub">Consejo: los productos con foto clara y precio por kilo reciben más interés.</p></section>
-        <section class="panel pila" aria-labelledby="t-avisos"><div class="fila" style="justify-content:space-between"><h2 id="t-avisos">Avisos recientes</h2>${noLeidos() ? `<button class="btn btn-texto btn-peq" data-accion="leidos">Marcar como leídos</button>` : ""}</div>
-          <div class="feed" id="feed">${AVISOS.map(itemAviso).join("")}</div></section>
       </div></div>`;
   }
   function itemAviso(a) {
@@ -502,7 +519,7 @@
     else if (!pantallas[ruta]) { ruta = "login"; raiz.innerHTML = pLogin(); }
     else raiz.innerHTML = ["login", "registro"].includes(ruta) ? pantallas[ruta]() : marco(ruta, pantallas[ruta]());
     if (ruta !== "login") E.avisoLogin = false;
-    const titulos = { login: "Ingresar", registro: "Crear cuenta", inicio: "Galería", producto: "Producto", intereses: "Mis intereses", publicar: "Publicar producto", "mis-productos": "Mis productos", panel: "Panel", uikit: "Guía de estilos" };
+    const titulos = { login: "Ingresar", registro: "Crear cuenta", inicio: "Galería", producto: "Producto", intereses: "Mis intereses", publicar: "Publicar producto", "mis-productos": "Mis productos", panel: "Avisos", uikit: "Guía de estilos" };
     document.title = `${titulos[ruta] || "MiRaíz"} · Prototipo MiRaíz`;
     const sel = $("#proto-pantalla"); if (sel) sel.value = ruta === "producto" ? "producto-1" : ruta;
     window.scrollTo(0, 0);
@@ -583,16 +600,17 @@
       ir(v);
     }
   });
+  document.addEventListener("focusout", (ev) => { if (ev.target.id === "p-precio") ev.target.value = miles(ev.target.value); });
   document.addEventListener("submit", (ev) => {
     ev.preventDefault();
     const f = ev.target;
     if (f.id === "f-login") {
-      if (!validar(f, { usuario: (v) => /@/.test(v) || /^\d{10}$/.test(v.replace(/\s/g, "")), clave: (v) => v.length > 0 })) return;
+      if (!validar(f, { usuario: (v) => /@/.test(v) || /^3\d{9}$/.test(soloCel(v)), clave: (v) => v.length > 0 })) return;
       entrar(/@/.test(f.elements.usuario.value) ? "comprador" : "agricultor");
       ir("inicio"); toast(`Hola, ${yo().corto}. ${E.sesion.rol === "agricultor" ? "Bienvenido" : "Bienvenida"} a MiRaíz.`);
     }
     if (f.id === "f-registro") {
-      const ok = validar(f, { nombre: (v) => v.length > 2, celular: (v) => /^3\d{9}$/.test(v.replace(/\s/g, "")), municipio: (v) => !!v, clave2: (v) => v.length >= 8, terminos: () => f.elements.terminos.checked });
+      const ok = validar(f, { nombre: (v) => v.length > 2, celular: (v) => /^3\d{9}$/.test(soloCel(v)), municipio: (v) => !!v, clave2: (v) => v.length >= 8, terminos: () => f.elements.terminos.checked });
       if (!ok) return;
       const rol = f.elements.rol.value; entrar(rol);
       if (rol === "agricultor") { ir("publicar"); toast("Cuenta creada. Ahora publica tu primer producto."); } else { ir("inicio"); toast("Cuenta creada. Ya puedes explorar productos."); }
@@ -605,7 +623,7 @@
     }
     if (f.id === "f-publicar") {
       guardarBorrador(); const b = E.borrador;
-      const ok = validar(f, { foto: () => !!(b.foto || b.arte), "p-nombre": (v) => v.length > 1, "p-cat": (v) => !!v, "p-precio": (v) => b.estado === "exhibicion" || /^\d{2,7}$/.test(v) });
+      const ok = validar(f, { foto: () => !!(b.foto || b.arte), "p-nombre": (v) => v.length > 1, "p-cat": (v) => !!v, "p-precio": (v) => b.estado === "exhibicion" || /^\d{2,7}$/.test(soloNum(v)) });
       if (!ok) return;
       if (E.editando) { Object.assign(prod(E.editando), { nombre: b.nombre, cat: b.cat, precio: Number(b.precio) || 0, unidad: b.unidad, estado: b.estado, mun: b.mun, desc: b.desc, arte: b.arte || prod(E.editando).arte, foto: b.foto }); toast("Cambios guardados."); }
       else { P.unshift({ id: Math.max(...P.map((p) => p.id)) + 1, nombre: b.nombre, cat: b.cat, precio: Number(b.precio) || 0, unidad: b.unidad, mun: b.mun, agri: "alirio", estado: b.estado, arte: b.arte || "tomate", foto: b.foto, r: 1.1, dias: 0, int: 0, vis: 0, desc: b.desc || "Producto recién publicado." }); toast("Producto publicado. Ya aparece en la galería."); }
