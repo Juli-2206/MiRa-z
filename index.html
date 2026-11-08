@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototipo MiRaíz</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Prototipo navegable del MVP de MiRaíz: plataforma para vender productos del campo directo al comprador.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bitter:wght@600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+
+<div class="proto-bar" role="region" aria-label="Controles del prototipo">
+  <strong>Prototipo MiRaíz · v2</strong>
+  <label for="proto-pantalla">Ir a
+    <select id="proto-pantalla">
+      <option value="login">Inicio de sesión</option>
+      <option value="registro">Registro</option>
+      <option value="inicio">Panel principal (galería)</option>
+      <option value="producto-1">Detalle de producto</option>
+      <option value="intereses">Mis intereses (comprador)</option>
+      <option value="publicar">Publicar producto</option>
+      <option value="mis-productos">Gestión: mis productos</option>
+      <option value="panel">Reportes: panel del agricultor</option>
+      <option value="uikit">Guía de estilos (UI Kit)</option>
+    </select>
+  </label>
+  <label for="proto-rol">Rol
+    <select id="proto-rol">
+      <option value="comprador">Laura (compradora)</option>
+      <option value="agricultor">Don Alirio (agricultor)</option>
+    </select>
+  </label>
+  <label for="proto-wf"><input type="checkbox" id="proto-wf"> Ver como wireframe</label>
+</div>
+
+<div id="raiz"></div>
+<div id="avisos-vivos" aria-live="polite" aria-atomic="true"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
